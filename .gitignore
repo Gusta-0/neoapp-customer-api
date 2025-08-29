@@ -35,3 +35,15 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Logs e temporários ###
+*.log
+*.tmp
+*.swp
+
+### Arquivos do sistema ###
+.DS_Store
+Thumbs.db
+
+### Configurações locais (sensíveis) ###
+src/main/resources/application.yml
