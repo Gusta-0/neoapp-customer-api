@@ -8,10 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/cliente")
@@ -35,4 +32,15 @@ public class ClienteController {
         return "Bearer " + jwtUtil.generateToken(authentication.getName());
     }
 
+    @PutMapping
+    public ResponseEntity<ClienteDTO> atualizDadoUsuario(@RequestBody ClienteDTO dto,
+                                                         @RequestHeader("Authorization") String token) {
+        return ResponseEntity.ok(clienteService.atualizaDadosUsuario(token, dto));
+    }
+
+    @DeleteMapping("/{email}")
+    public ResponseEntity<Void> deletaUsuario(@PathVariable String email) {
+        clienteService.deletaUsuarioPorEmail(email);
+        return ResponseEntity.ok().build();
+    }
 }

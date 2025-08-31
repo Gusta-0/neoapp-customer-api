@@ -34,9 +34,9 @@ public class Cliente implements UserDetails {
     @Column(nullable = false)
     private LocalDate dataNascimento;
 
-    private String cpf; // opcional
+    private String cpf;
 
-    // Getter calculado
+
     public Integer getIdade() {
         return Period.between(this.dataNascimento, LocalDate.now()).getYears();
     }
