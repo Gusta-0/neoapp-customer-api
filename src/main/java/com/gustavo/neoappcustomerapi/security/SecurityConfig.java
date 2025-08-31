@@ -36,21 +36,12 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                        // Endpoints públicos
-                        .requestMatchers("/usuario/login").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/auth").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/usuario").permitAll()
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/v3/api-docs.yaml",
-                                "/swagger-resources/**",
-                                "/webjars/**"
-                        ).permitAll()
-
-                        // Endpoints que exigem autenticação
-                        .requestMatchers("/usuario/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/cliente").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/cliente/login").permitAll()
+                        .requestMatchers("/cliente/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
