@@ -3,6 +3,7 @@ package com.gustavo.neoappcustomerapi.business.mapper;
 import com.gustavo.neoappcustomerapi.business.dto.ClienteDTO;
 import com.gustavo.neoappcustomerapi.infrastructure.entity.Cliente;
 import org.mapstruct.Mapper;
+import org.mapstruct.MappingTarget;
 
 import java.util.List;
 
@@ -15,4 +16,7 @@ public interface ClienteMapper {
     List<ClienteDTO> toDTOList(List<Cliente> clientes);
 
     List<Cliente> toEntityList(List<ClienteDTO> clienteDTOs);
+
+    void updateEntityFromDto(ClienteDTO dto, @MappingTarget Cliente entity);
+
 }
