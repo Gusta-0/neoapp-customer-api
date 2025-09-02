@@ -1,7 +1,12 @@
 package com.gustavo.neoappcustomerapi.business;
 
+
 import com.gustavo.neoappcustomerapi.business.dto.ClienteDTO;
+import com.gustavo.neoappcustomerapi.business.dto.ClienteLoginDTO;
+
+import com.gustavo.neoappcustomerapi.business.dto.ClienteResponseDTO;
 import com.gustavo.neoappcustomerapi.business.mapper.ClienteMapper;
+import com.gustavo.neoappcustomerapi.business.mapper.ClienteUpdateMapper;
 import com.gustavo.neoappcustomerapi.infrastructure.entity.Cliente;
 import com.gustavo.neoappcustomerapi.infrastructure.exception.ConflictException;
 import com.gustavo.neoappcustomerapi.infrastructure.exception.ResourceNotFoundException;
@@ -9,14 +14,19 @@ import com.gustavo.neoappcustomerapi.infrastructure.exception.UnauthorizedExcept
 import com.gustavo.neoappcustomerapi.infrastructure.repository.ClienteRepository;
 import com.gustavo.neoappcustomerapi.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -27,21 +37,24 @@ public class ClienteService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
+    private final ClienteUpdateMapper clienteUpdateMapper;
 
-    public ClienteDTO salvaUsuario(ClienteDTO clienteDto) {
+    public ClienteResponseDTO salvaCliente(ClienteDTO clienteDto) {
         emailExiste(clienteDto.getEmail());
         clienteDto.setSenha(passwordEncoder.encode(clienteDto.getSenha()));
+
         Cliente cliente = clienteMapper.toEntity(clienteDto);
-        return clienteMapper.toDTO(
-                clienteRepository.save(cliente)
-        );
+        Cliente clienteSalvo = clienteRepository.save(cliente);
+
+        return clienteMapper.toResponseDTO(clienteSalvo);
     }
 
-    public String autenticarUsuario(ClienteDTO clienteDTO) {
+
+    public String autenticarCliente(ClienteLoginDTO dto) {
         try {
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(clienteDTO.getEmail(),
-                            clienteDTO.getSenha())
+                    new UsernamePasswordAuthenticationToken(dto.getEmail(),
+                            dto.getSenha())
             );
             return "Bearer " + jwtUtil.generateToken(authentication.getName());
 
@@ -65,26 +78,50 @@ public class ClienteService {
         return clienteRepository.existsByEmail(email);
     }
 
-    public ClienteDTO atualizaDadosUsuario(String token, ClienteDTO dto) {
-        String email = jwtUtil.extrairEmailToken(token.substring(7));
-
-        Cliente clienteExistente = clienteRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Email não localizado"));
-
-        if (dto.getSenha() != null && !dto.getSenha().isBlank()) {
-            dto.setSenha(passwordEncoder.encode(dto.getSenha()));
-        } else {
-            dto.setSenha(clienteExistente.getSenha()); // mantém a senha atual
-        }
-
-        clienteMapper.updateEntityFromDto(dto, clienteExistente);
-
-        Cliente atualizado = clienteRepository.save(clienteExistente);
-        return clienteMapper.toDTO(atualizado);
+    public Page<ClienteResponseDTO> listarClientes(Pageable pageable) {
+        return clienteRepository.findAll(pageable)
+                .map(clienteMapper::toResponseDTO);
     }
 
 
-    public String deletaUsuarioPorEmail(String email) {
+    public Page<ClienteResponseDTO> buscarPorNome(String nome, Pageable pageable) {
+        return clienteRepository.findByNomeContainingIgnoreCase(nome, pageable)
+                .map(clienteMapper::toResponseDTO);
+    }
+
+    public Page<ClienteResponseDTO> buscarPorEmail(String email, Pageable pageable) {
+        return clienteRepository.findByEmailContainingIgnoreCase(email, pageable)
+                .map(clienteMapper::toResponseDTO);
+    }
+
+    public ClienteResponseDTO atualizaDadosCliente(ClienteDTO dto) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+
+        Cliente clienteExistente = clienteRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Cliente com e-mail " + email + " não localizado"));
+
+        if (StringUtils.hasText(dto.getSenha())) {
+            dto.setSenha(passwordEncoder.encode(dto.getSenha()));
+        } else {
+            dto.setSenha(null);
+        }
+
+        clienteUpdateMapper.updateCliente(dto, clienteExistente);
+
+        Cliente atualizado = clienteRepository.save(clienteExistente);
+        return clienteMapper.toResponseDTO(atualizado);
+    }
+
+
+    private boolean verificaCpfExistente(String cpf) {
+        return clienteRepository.findByCpf(cpf)
+                .isPresent();
+    }
+
+    @Transactional
+    public String deletaClientePorEmail(String email) {
         clienteRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Email não encontrado " + email));
         clienteRepository.deleteByEmail(email);
