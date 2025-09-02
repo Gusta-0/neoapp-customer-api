@@ -6,6 +6,7 @@
 classDiagram
     direction TB
 
+    %% Entidade principal
     class Cliente {
         - Long id
         - String nome
@@ -15,29 +16,33 @@ classDiagram
         + Integer calcularIdade()
     }
 
+    %% Repositório
     class ClienteRepositorio {
         <<interface>>
         + Optional~Cliente~ buscarPorEmail(String email)
     }
 
+    %% Serviço
     class ClienteServico {
         - ClienteRepositorio clienteRepositorio
-        + Cliente incluirCliente(Cliente cliente)
-        + Cliente atualizarCliente(Long id, Cliente cliente)
-        + Page~Cliente~ listarClientes(Pageable pageable)
-        + List~Cliente~ buscarPorFiltros(Map<String,String> filtros)
+        + ClienteResponseDTO incluirCliente(ClienteDTO dto)
+        + ClienteResponseDTO atualizarCliente(Long id, ClienteDTO dto)
+        + Page~ClienteResponseDTO~ listarClientes(Pageable pageable)
+        + List~ClienteResponseDTO~ buscarPorFiltros(Map<String,String> filtros)
         + void excluirCliente(Long id)
     }
 
+    %% Controller
     class ClienteControlador {
         - ClienteServico clienteServico
-        + ResponseEntity<ClienteDTO> incluirCliente(ClienteDTO dto)
-        + ResponseEntity<ClienteDTO> atualizarCliente(Long id, ClienteDTO dto)
+        + ResponseEntity<ClienteResponseDTO> incluirCliente(ClienteDTO dto)
+        + ResponseEntity<ClienteResponseDTO> atualizarCliente(Long id, ClienteDTO dto)
         + ResponseEntity<Void> excluirCliente(Long id)
-        + Page<ClienteDTO> listarClientes(int pagina, int tamanho, Map<String,String> filtros)
-        + ResponseEntity<ClienteDTO> buscarPorId(Long id)
+        + Page~ClienteResponseDTO~ listarClientes(int pagina, int tamanho, Map<String,String> filtros)
+        + ResponseEntity<ClienteResponseDTO> buscarPorId(Long id)
     }
 
+    %% DTOs
     class ClienteDTO {
         - Long id
         - String nome
@@ -47,6 +52,34 @@ classDiagram
         - Integer idade
     }
 
+    class ClienteLoginDTO {
+        - String email
+        - String senha
+    }
+
+    class ClienteResponseDTO {
+        - Long id
+        - String nome
+        - String email
+        - LocalDate dataNascimento
+        - String cpf
+        - Integer idade
+        - LocalDateTime criadoEm
+        - LocalDateTime atualizadoEm
+    }
+
+    %% Mappers
+    class ClienteMapper {
+        + ClienteDTO toDTO(Cliente cliente)
+        + Cliente toEntity(ClienteDTO dto)
+        + ClienteResponseDTO toResponseDTO(Cliente cliente)
+    }
+
+    class ClienteUpdateMapper {
+        + void atualizarEntidade(ClienteDTO dto, Cliente cliente)
+    }
+
+    %% Segurança
     class JwtServico {
         + String gerarToken(UserDetails usuario)
         + boolean validarToken(String token, UserDetails usuario)
@@ -66,11 +99,15 @@ classDiagram
         + UserDetails carregarUsuarioPorNome(String usuario)
     }
 
+    %% Relações
     ClienteRepositorio <|.. JpaRepository
     ClienteServico --> ClienteRepositorio
+    ClienteServico --> ClienteMapper
+    ClienteServico --> ClienteUpdateMapper
     ClienteControlador --> ClienteServico
     ClienteControlador --> ClienteDTO
-    ClienteServico --> ClienteDTO
+    ClienteControlador --> ClienteResponseDTO
     JwtServico --> AutenticacaoControlador
     AutenticacaoControlador --> RequisicaoAutenticacao
     UsuarioDetalhesServico --> UserDetails
+
